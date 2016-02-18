@@ -218,8 +218,23 @@ class SystemdNetworkd:
 		else:
 			return True
 
+	def _remove_files(self):
+		changed = False
+
+		for type in ['link', 'netdev', 'network']:
+			file_path = "/etc/systemd/network/{interface}.{file_type}".format(interface=self.interface, file_type=type)
+
+			if os.path.isfile(file_path):
+				os.remove(file_path)
+				changed = True
+
+		self.module.exit_json(changed=changed)
+
 	def configure_link(self):
 		changed = False
+
+		if self.state == 'absent':
+			self._remove_files()
 
 		if self.type == 'simple':
 			changed = self._create_link_file()
