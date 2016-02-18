@@ -87,6 +87,12 @@ options:
         on the interface, if vlan_type is host
     required: false
     default: null
+  destructive:
+    description:
+      - If the module should try and remove all the files in /etc/systemd/network before running, thus
+        making sure that the module setups the network files from scratch
+    required: false
+    default: false
 '''
 
 import os
@@ -108,6 +114,7 @@ class SystemdNetworkd:
 		self.bridge_type = module.params['bridge_type']
 		self.vlan = module.params['vlan']
 		self.vlan_type = module.params['vlan_type']
+		self.destructive = module.params['destructive']
 
 		if not self.mac and (self.type in ['simple', 'bond'] or (self.type == 'bridge' and self.bridge_type != 'vlan')):
 			module.fail_json(msg='Have to supply a MAC address to match to when type is simple, bridge or bond')
@@ -228,13 +235,16 @@ class SystemdNetworkd:
 				os.remove(file_path)
 				changed = True
 
-		self.module.exit_json(changed=changed)
+		if not self.destructive and self.state == 'absent':
+			self.module.exit_json(changed=changed)
+		else:
+			return changed
 
 	def configure_link(self):
 		changed = False
 
-		if self.state == 'absent':
-			self._remove_files()
+		if self.state == 'absent' or self.destructive:
+			changed = self._remove_files()
 
 		if self.type == 'simple':
 			changed = self._create_link_file()
@@ -261,6 +271,7 @@ def main():
     		vlan_type = dict(default='interface', choices=['interface', 'host']),
     		vlan = dict(type='str'),
     		bridge_type = dict(default='simple', choices=['vlan', 'bond', 'simple']),
+    		destructive = dict(default=False, type='bool'),
         ),
     )
 
