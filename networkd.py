@@ -4,10 +4,94 @@
 # (c) 2016, Daniel Kuehn <daniel@kuehn.se>
 #
 
+DOCUMENTATION = '''
+---
+module: networkd
+short_description: Configure simple and complex networking setups for systemd-networkd
+description:
+    - Configure simple and complex networking setups for systemd-networkd
+
+notes:
+    - To configure the more complex scenarios of networking, i.e. vlans on simple interfaces or
+      bridges on vlans on simple interfaces, it requires to either manually setup the required
+      steps, and thus only setup the top-level with this module, or map the steps needed with
+      this module
+options:
+  interface:
+    description:
+      - Name of the interface, will also be the name of the link/network/netdev file
+        (i.e interface=eth0 will become eth0.link/netdev/network). For simple interfaces
+        they will retain the name that udev or similar system gave them i.e. eth0, enp2s0
+        or wlp3s0f1 in ifconfig/ip addr output, for the others, they will have this name.
+    required: true
+    default: null
+  state:
+    description:
+      - Desired state of the interface configuration files, i.e. if the config files should be
+        written or removed.
+    required: true
+    default: null
+    choices: ['present', 'absent']
+  bridge_type:
+    description:
+      - What type of interface the bridge is connected to, if any, initially
+    required: false
+    default: 'simple'
+    choices: ['vlan', 'bond', 'simple', 'none']
+  type:
+    description:
+      - What type of interface to create
+    required: false
+    default: 'simple'
+    choices: ['bridge', 'vlan', 'bond', 'simple']
+  vlan_type:
+    description:
+      - If the interface being configured for the VLAN is the host which the VLANs are created
+        from or if its the actual interface for the VLAN
+    required: false
+    default: 'interface'
+    choices: ['interface', 'host']
+  mac:
+    description:
+      - MAC address of the interface
+    required: false
+    default: null
+  ip4:
+    description:
+      - IPv4 address of the interface
+    required: false
+    default: null
+  gw4:
+    description:
+      - IPv4 gateway for the interface
+    required: false
+    default: null
+  dns4:
+    description:
+      - IPv4 DNS servers to setup for the interface
+    required: false
+    default: null
+  ntp:
+    description:
+      - NTP server to configure for the interface
+    required: false
+    default: null
+  bridge:
+    description:
+      - Name of the bridge to attach the interface to
+    required: false
+    default: null
+  vlan:
+    description:
+      - Numeric ID of the VLAN, if vlan_type is interface, or string of one or more VLANs to create
+        on the interface, if vlan_type is host
+    required: false
+    default: null
+'''
+
 import os
 import tempfile
 import filecmp
-from ansible.module_utils.basic import *
 
 class SystemdNetworkd:
 	def __init__(self, module):
@@ -45,9 +129,9 @@ class SystemdNetworkd:
 
 		if self._content_changed(str, 'link', tmpname):
 			try:
-				self.module.atomic_move(name, os.path.realpath(dest))
+				self.module.atomic_move(tmpname, os.path.realpath(dest))
 			except Exception as e:
-				self.module.fail_json(msg='Could not move %s to %s: %s' % (name, dest, e))
+				self.module.fail_json(msg='Could not move %s to %s: %s' % (tmpname, dest, e))
 				return False
 
 			return True
@@ -90,9 +174,9 @@ class SystemdNetworkd:
 
 		if self._content_changed(str, 'network', tmpname):
 			try:
-				self.module.atomic_move(name, os.path.realpath(dest))
+				self.module.atomic_move(tmpname, os.path.realpath(dest))
 			except Exception as e:
-				self.module.fail_json(msg='Could not move %s to %s: %s' % (name, dest, e))
+				self.module.fail_json(msg='Could not move %s to %s: %s' % (tmpname, dest, e))
 				return False
 
 			return True
@@ -116,9 +200,9 @@ class SystemdNetworkd:
 
 		if self._content_changed(str, 'netdev', tmpname):
 			try:
-				self.module.atomic_move(name, os.path.realpath(dest))
+				self.module.atomic_move(tmpname, os.path.realpath(dest))
 			except Exception as e:
-				self.module.fail_json(msg='Could not move %s to %s: %s' % (name, dest, e))
+				self.module.fail_json(msg='Could not move %s to %s: %s' % (tmpname, dest, e))
 				return False
 
 			return True
@@ -168,5 +252,6 @@ def main():
 	networkd = SystemdNetworkd(module)
 	networkd.configure_link()
 
+from ansible.module_utils.basic import *
 if __name__ == '__main__':
 	main()
