@@ -101,6 +101,17 @@ options:
       choices: ['yes', 'no', 'ipv4', 'ipv6']
 '''
 
+EXAMPLES = '''
+# Setup a simple interface with IP address, default gateway, DNS and NTP servers
+- networkd: name='eth0' mac=00:11:22:33:44:55 ip4=1.2.3.4 dns4=4.3.2.1 gw4=1.1.1.1 ntp=pool.0.ntp.org state=present
+
+# Setup only an IP address on a interface
+- networkd: name='eth1' mac=11:22:33:44:55:66 ip4=2.3.4.5 state=present
+
+# Create several VLANs on a host interface
+- networkd: name='eth2' mac=22:33:44:55:66:77 vlan='internet internal' vlan_type='host'
+'''
+
 import os
 import tempfile
 import filecmp
