@@ -98,6 +98,7 @@ options:
 import os
 import tempfile
 import filecmp
+import glob
 
 class SystemdNetworkd:
 	def __init__(self, module):
@@ -227,13 +228,22 @@ class SystemdNetworkd:
 
 	def _remove_files(self):
 		changed = False
+		if self.destructive:
+			files = glob("/etc/systemd/network/*")
 
-		for type in ['link', 'netdev', 'network']:
-			file_path = "/etc/systemd/network/{interface}.{file_type}".format(interface=self.interface, file_type=type)
+			# Only remove files that are related systemd-networkd
+			for file in files:
+				# This makes sure that the module doesn't remove anything
+				# but link, netdev and network files
+				if file.split(".")[-1] in ['link', 'netdev', 'network']:
+					os.remove(file)
+		else:
+			for type in ['link', 'netdev', 'network']:
+				file_path = "/etc/systemd/network/{interface}.{file_type}".format(interface=self.interface, file_type=type)
 
-			if os.path.isfile(file_path):
-				os.remove(file_path)
-				changed = True
+				if os.path.isfile(file_path):
+					os.remove(file_path)
+					changed = True
 
 		if not self.destructive and self.state == 'absent':
 			self.module.exit_json(changed=changed)
