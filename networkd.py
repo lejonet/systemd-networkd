@@ -92,7 +92,13 @@ options:
       - If the module should try and remove all the files in /etc/systemd/network before running, thus
         making sure that the module setups the network files from scratch
     required: false
-    default: false
+    default: null
+  dhcp:
+    description:
+      - Enable DHCP on the interface, either both IPv4 and IPv6, just either or not at all
+      required: false
+      default: null
+      choices: ['yes', 'no', 'ipv4', 'ipv6']
 '''
 
 import os
@@ -116,6 +122,10 @@ class SystemdNetworkd:
 		self.vlan = module.params['vlan']
 		self.vlan_type = module.params['vlan_type']
 		self.destructive = module.params['destructive']
+		self.dhcp = module.params['dhcp']
+
+		if self.dhcp and self.ipv4:
+			module.fail_json(msg='Cannot specify static address and DHCP at the same time')
 
 		if not self.mac and (self.type in ['simple', 'bond'] or (self.type == 'bridge' and self.bridge_type != 'vlan')):
 			module.fail_json(msg='Have to supply a MAC address to match to when type is simple, bridge or bond')
@@ -156,11 +166,14 @@ class SystemdNetworkd:
 		elif self.type != 'vlan':
 			str = "[Match]\nMACAddress={}\n\n[Network]\n".format(self.mac)
 
-		if self.ip4:
-			str += "Address={}\n".format(self.ip4)
+		if not self.dhcp:
+			if self.ip4:
+				str += "Address={}\n".format(self.ip4)
 
-		if self.gw4:
-			str += "Gateway={}\n".format(self.gw4)
+			if self.gw4:
+				str += "Gateway={}\n".format(self.gw4)
+		else:
+			str += "DHCP:{}\n".format(self.dhcp)
 
 		if self.dns4:
 			str += "DNS={}\n".format(self.dns4)
@@ -282,6 +295,7 @@ def main():
     		vlan = dict(type='str'),
     		bridge_type = dict(default='simple', choices=['vlan', 'bond', 'simple']),
     		destructive = dict(default=False, type='bool'),
+    		dhcp = dict(default=False, type='str', choices['yes', 'no', 'ipv4', 'ip6'),
         ),
     )
 
