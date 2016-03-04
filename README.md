@@ -12,29 +12,29 @@ Examples
 --------
 ```
 # Setup a simple interface with IP address, default gateway, DNS and NTP servers
-- networkd: name='eth0' mac=00:11:22:33:44:55 ip4=1.2.3.4 dns4=4.3.2.1 gw4=1.1.1.1 ntp=pool.0.ntp.org state=present
+- networkd: name='eth0' mac=00:11:22:33:44:55 ip4=1.2.3.4 dns4=4.3.2.1 gw4=1.1.1.1
 
 # Setup only an IP address on a interface
-- networkd: name='eth1' mac=11:22:33:44:55:66 ip4=2.3.4.5 state=present
+- networkd: name='eth1' mac=11:22:33:44:55:66 ip4=2.3.4.5 ntp=pool.ntp.org
 
 # Create several VLANs on a host interface
 - networkd: name='eth2' mac=22:33:44:55:66:77 vlan='internet internal' vlan_type='host'
 
 # Setup the VLAN interfaces created on the host interface above
-- networkd: name='internet' type=vlan ip4=2.3.4.6 dns4=8.8.8.8 8.8.4.4 gw4=2.3.4.1 state=present vlan=10
+- networkd: name='internet' type=vlan ip4=2.3.4.6 dns4=8.8.8.8 8.8.4.4 gw4=2.3.4.1 vlan=10
 - networkd: name='internal' type=vlan dhcp=yes state=present vlan=42
 
 # Setup a bridge and connect a physical NIC to it
-- networkd: name='br0' type=bridge ip4=1.1.1.5 state=present
-- networkd: name='eth42' mac=00:11:22:44:55:66 bridge=br0 state=present
+- networkd: name='br0' type=bridge ip4=1.1.1.5
+- networkd: name='eth42' mac=00:11:22:44:55:66 bridge=br0
 
 # Create a VLAN and attach it to a bridge interface
-- networkd: name='eth3' mac=11:33:44:55:66:77 vlan='dmz' vlan_type='host' state=present
-- networkd: name='dmz' type=vlan state=present vlan=1337 bridge='br-dmz'
-- networkd: name='br-dmz' type=bridge dhcp=ipv4 state=present bridge_type=vlan
+- networkd: name='eth3' mac=11:33:44:55:66:77 vlan='dmz' vlan_type='host'
+- networkd: name='dmz' type=vlan vlan=1337 bridge='br-dmz'
+- networkd: name='br-dmz' type=bridge dhcp=ipv4 bridge_type=vlan
 
 # Create a standalone bridge
-- networkd: name='lxcbr0' mac=33:44:55:77:88:99 ip4=192.168.0.1 dns4=192.168.0.3 state=present bridge_type=none
+- networkd: name='lxcbr0' mac=33:44:55:77:88:99 ip4=192.168.0.1 dns4=192.168.0.3 bridge_type=none
 ```
 
 Documentation of options
@@ -63,7 +63,7 @@ options:
       - Desired state of the interface configuration files, i.e. if the config files should be
         written or removed.
     required: true
-    default: null
+    default: 'present'
     choices: ['present', 'absent']
   bridge_type:
     description:

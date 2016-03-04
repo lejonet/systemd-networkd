@@ -30,7 +30,7 @@ options:
       - Desired state of the interface configuration files, i.e. if the config files should be
         written or removed.
     required: true
-    default: null
+    default: 'present'
     choices: ['present', 'absent']
   bridge_type:
     description:
@@ -310,7 +310,7 @@ def main():
 	module = AnsibleModule(
     	argument_spec=dict(
     		interface = dict(required=True, type='str', aliases=['name']),
-    		state = dict(required=True, choices=['present', 'absent']),
+    		state = dict(default='present', choices=['present', 'absent']),
     		mac = dict(type='str'),
     		ip4 = dict(type='str'),
     		gw4 = dict(type='str'),
