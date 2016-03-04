@@ -110,6 +110,22 @@ EXAMPLES = '''
 
 # Create several VLANs on a host interface
 - networkd: name='eth2' mac=22:33:44:55:66:77 vlan='internet internal' vlan_type='host'
+
+# Setup the VLAN interfaces created on the host interface above
+- networkd: name='internet' type=vlan ip4=2.3.4.6 dns4=8.8.8.8 8.8.4.4 gw4=2.3.4.1 state=present vlan=10
+- networkd: name='internal' type=vlan dhcp=yes state=present vlan=42
+
+# Setup a bridge and connect a physical NIC to it
+- networkd: name='br0' type=bridge ip4=1.1.1.5 state=present
+- networkd: name='eth42' mac=00:11:22:44:55:66 bridge=br0 state=present
+
+# Create a VLAN and attach it to a bridge interface
+- networkd: name='eth3' mac=11:33:44:55:66:77 vlan='dmz' vlan_type='host' state=present
+- networkd: name='dmz' type=vlan state=present vlan=1337 bridge='br-dmz'
+- networkd: name='br-dmz' type=bridge dhcp=ipv4 state=present bridge_type=vlan
+
+# Create a standalone bridge
+- networkd: name='lxcbr0' mac=33:44:55:77:88:99 ip4=192.168.0.1 dns4=192.168.0.3 state=present bridge_type=none
 '''
 
 import os
@@ -135,7 +151,7 @@ class SystemdNetworkd:
 		self.destructive = module.params['destructive']
 		self.dhcp = module.params['dhcp']
 
-		if self.dhcp and self.ipv4:
+		if self.dhcp and self.ip4:
 			module.fail_json(msg='Cannot specify static address and DHCP at the same time')
 
 		if not self.mac and (self.type in ['simple', 'bond'] or (self.type == 'bridge' and self.bridge_type != 'vlan')):
@@ -306,7 +322,7 @@ def main():
     		vlan = dict(type='str'),
     		bridge_type = dict(default='simple', choices=['vlan', 'bond', 'simple']),
     		destructive = dict(default=False, type='bool'),
-    		dhcp = dict(default=False, type='str', choices['yes', 'no', 'ipv4', 'ip6'),
+    		dhcp = dict(type='str', choices=['yes', 'no', 'ipv4', 'ip6']),
         ),
     )
 
