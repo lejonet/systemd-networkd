@@ -87,6 +87,11 @@ options:
         on the interface, if vlan_type is host
     required: false
     default: null
+  macvlan:
+    description:
+      - string of one or more MACVLANs to create on the interface, if vlan_type is host
+    required: false
+    default: null
   destructive:
     description:
       - If the module should try and remove all the files in /etc/systemd/network before running, thus
@@ -147,6 +152,7 @@ class SystemdNetworkd:
 		self.bridge = module.params['bridge']
 		self.bridge_type = module.params['bridge_type']
 		self.vlan = module.params['vlan']
+		self.macvlan = module.params['macvlan']
 		self.vlan_type = module.params['vlan_type']
 		self.destructive = module.params['destructive']
 		self.dhcp = module.params['dhcp']
@@ -154,8 +160,8 @@ class SystemdNetworkd:
 		if self.dhcp and self.ip4:
 			module.fail_json(msg='Cannot specify static address and DHCP at the same time')
 
-		if not self.mac and (self.type in ['simple', 'bond'] or (self.type == 'bridge' and self.bridge_type != 'vlan')):
-			module.fail_json(msg='Have to supply a MAC address to match to when type is simple, bridge or bond')
+		if not self.mac and (self.type in ['simple', 'macvlan', 'bond'] or (self.type == 'bridge' and self.bridge_type != 'vlan')):
+			module.fail_json(msg='Have to supply a MAC address to match to when type is macvlan, simple, bridge or bond')
 
 		if not self.vlan and self.type == 'vlan':
 			module.fail_json(msg='Have to supply a vlan id, or list of vlan names in case of vlan_type="host", if type="vlan"')
@@ -211,10 +217,15 @@ class SystemdNetworkd:
 		if self.bridge:
 			str += "Bridge={}\n".format(self.bridge)
 
-		if self.vlan_type == 'host' and self.vlan:
-			vlans = self.vlan.split(" ")
-			for vlan in vlans:
-				str += "VLAN={}\n".format(vlan)
+		if self.vlan_type == 'host':
+			if self.vlan:
+				vlans = self.vlan.split(" ")
+				for vlan in vlans:
+					str += "VLAN={}\n".format(vlan)
+			if self.macvlan:
+				macvlans = self.macvlan.split(" ")
+				for macvlan in macvlans:
+					str += "MACVLAN={}\n".format(macvlan)
 
 		f.writelines(str)
 		f.close()
@@ -238,8 +249,16 @@ class SystemdNetworkd:
 
 		if self.type == 'bridge':
 			str = "[NetDev]\nName={}\nKind=bridge\n".format(self.interface)
-		elif self.type == 'vlan':
-			str = "[NetDev]\nName={name}\nKind=vlan\n\n[VLAN]\nId={id}".format(name=self.interface, id=self.vlan)
+		elif self.type in ['macvlan','vlan']:
+			str = "[NetDev]\nName={name}\nKind={kind}".format(name=self.interface, kind=self.type)
+
+		if(self.mac):
+			str += "\nMACAddress={}".format(self.mac)
+
+		if self.type == 'vlan':
+			str += "\n\n[VLAN]\nId={id}".format(id=self.vlan)
+		elif self.type == 'macvlan':
+			str += "\n\n[MACVLAN]\nMode=bridge"
 
 		f.writelines(str)
 		f.close()
@@ -299,7 +318,7 @@ class SystemdNetworkd:
 		if self.type == 'simple':
 			changed = self._create_link_file()
 
-		if self.type in ['bridge', 'vlan']:
+		if self.type in ['bridge', 'vlan', 'macvlan']:
 			changed = self._create_netdev_file()
 
 		changed = self._create_network_file()
@@ -316,10 +335,11 @@ def main():
     		gw4 = dict(type='str'),
     		dns4 = dict(type='str'),
     		ntp = dict(type='str'),
-    		type = dict(default='simple', choices=['simple', 'bridge', 'vlan', 'bond']),
+    		type = dict(default='simple', choices=['simple', 'bridge', 'vlan', 'macvlan', 'bond']),
     		bridge = dict(type='str'),
     		vlan_type = dict(default='interface', choices=['interface', 'host']),
     		vlan = dict(type='str'),
+    		macvlan = dict(type='str'),
     		bridge_type = dict(default='simple', choices=['vlan', 'bond', 'simple']),
     		destructive = dict(default=False, type='bool'),
     		dhcp = dict(type='str', choices=['yes', 'no', 'ipv4', 'ip6']),
