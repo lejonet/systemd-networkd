@@ -87,6 +87,11 @@ options:
         on the interface, if vlan_type is host
     required: false
     default: null
+  macvlan:
+    description:
+      - string of one or more MACVLANs to create on the interface, if vlan_type is host
+    required: false
+    default: null
   destructive:
     description:
       - If the module should try and remove all the files in /etc/systemd/network before running, thus

@@ -24,17 +24,24 @@ Examples
 - networkd: name='internet' type=vlan ip4=2.3.4.6 dns4=8.8.8.8 8.8.4.4 gw4=2.3.4.1 vlan=10
 - networkd: name='internal' type=vlan dhcp=yes state=present vlan=42
 
+# Create several MACVLANs on a host interface
+- networkd: name='eth3' mac=33:44:55:66:77:88' vlan='eth3.macvlan1 eth3.macvlan2' vlan_type='host'
+
+# Setup the MACVLAN interfaces created on the host interface above
+- networkd: name='eth3.macvlan1' type=macvlan mac=b1:c8:5b:dd:ed:47 ip4=2.3.4.6 gw4=2.3.4.1
+- networkd: name='eth3.macvlan2' type=macvlan mac=e7:aa:fd:a3:5e:33 ip4=2.3.4.7 gw4=2.3.4.1
+
 # Setup a bridge and connect a physical NIC to it
 - networkd: name='br0' type=bridge ip4=1.1.1.5
 - networkd: name='eth42' mac=00:11:22:44:55:66 bridge=br0
 
 # Create a VLAN and attach it to a bridge interface
-- networkd: name='eth3' mac=11:33:44:55:66:77 vlan='dmz' vlan_type='host'
+- networkd: name='eth4' mac=11:33:44:55:66:77 vlan='dmz' vlan_type='host'
 - networkd: name='dmz' type=vlan vlan=1337 bridge='br-dmz'
 - networkd: name='br-dmz' type=bridge dhcp=ipv4 bridge_type=vlan
 
 # Create a standalone bridge
-- networkd: name='lxcbr0' mac=33:44:55:77:88:99 ip4=192.168.0.1 dns4=192.168.0.3 bridge_type=none
+- networkd: name='lxcbr0' mac=44:55:66:77:88:99 ip4=192.168.0.1 dns4=192.168.0.3 bridge_type=none
 ```
 
 Documentation of options
