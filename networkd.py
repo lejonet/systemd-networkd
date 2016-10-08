@@ -206,7 +206,7 @@ class SystemdNetworkd:
 			if self.gw4:
 				str += "Gateway={}\n".format(self.gw4)
 		else:
-			str += "DHCP:{}\n".format(self.dhcp)
+			str += "DHCP={}\n".format(self.dhcp)
 
 		if self.dns4:
 			str += "DNS={}\n".format(self.dns4)
